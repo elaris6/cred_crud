@@ -6,6 +6,30 @@ import os
 
 version="0.0"
 
+def crearAlmacenamientoLocal(reseteo):
+    try:
+        file = open('cred_crud.db', 'r')
+        file.close()
+    except:
+        conexion_bbdd = sqlite3.connect("cred_crud.db")
+        cursor_bbdd = conexion_bbdd.cursor()
+        cursor_bbdd.execute('''--sql
+        CREATE TABLE CREDENCIALES(
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        DESCRIPCION VARCHAR(60) UNIQUE,
+        USUARIO VARCHAR(30),
+        PASSWORD VARCHAR (30),
+        COMENTARIOS VARCHAR(200))  
+        --endsql''')
+        cursor_bbdd.close()
+        conexion_bbdd.close()
+        if reseteo == True:
+            messagebox.showinfo(
+                "Información", "Se ha inicializado un nuevo fichero de almacenamiento.")
+        else:
+            messagebox.showinfo("Información", "El fichero de almacenamiento local no se ha hallado.\nSe ha inicializado un nuevo fichero de almacenamiento.")
+
+
 # Función para mostrar información sobre la aplicación en Acerca de...
 def informacion():
     messagebox.showinfo("Almacenamiento usuarios y contraseñas",
@@ -15,7 +39,17 @@ def informacion():
 def salirAplicacion():
     valor = messagebox.askokcancel("Salir de la aplicación", "Quieres salir?")
     if valor == True:
+        cursor_bbdd.close()
+        conexion_bbdd.close()
         root.destroy()
+
+def eliminarAlacenamientoLocal():
+    valor = messagebox.askokcancel("Eliminar alacenamiento", "Estás seguro de que deseas eliminar el almacenamiento local?")
+    if valor == True:
+        valor = messagebox.askyesno("Eliminar almacenamiento", "Seguro de verdad?\nNo hay marcha atrás, eh?")
+        if valor == True:
+            os.remove("cred_crud.db")
+            crearAlmacenamientoLocal(True)
 
 # Función para borrar los campos de entrada
 def cleanEntries():
@@ -35,7 +69,16 @@ def ventanaTablaResultados():
 
 # Función para tomar los campos de entrada e insertarlos como un nuevo registro almacenado
 def operCreate():
-    pass
+    if entryDescripcion.get()=="" or entryUsuario.get() =="" or entryPassword.get() =="":
+        messagebox.showerror("Información", "Uno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
+        pass
+    else:
+        cursor_bbdd.execute('''--sql
+            INSERT INTO CREDENCIALES VALUES (NULL,?,?,?,?)
+            --endsql''',(entryDescripcion.get(), entryUsuario.get(), entryPassword.get(),textComentarios.get("1.0", END)))
+        conexion_bbdd.commit()
+        messagebox.showinfo("Información","Nuevo registro insertado!")
+        cleanEntries()
 
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
@@ -48,22 +91,28 @@ def operUpdate():
 
 # Función para eliminar el registro que coincida con el identificador informado
 def operDelete():
-    pass
+    if entryIdentificador.get() == "":
+        messagebox.showerror(
+            "Información", "El campo identificador está vacío.\n\nPor favor, informe el un valor.")
+        pass
+    else:
+        lista = (entryIdentificador.get())
+        cursor_bbdd.executemany('''--sql
+            DELETE FROM CREDENCIALES WHERE ID=?
+            --endsql''', lista)
+        resultadoQuery = cursor_bbdd.rowcount # ESTO NO FUNCIONA. DEVUELVE -1 SIEMPRE
+        print(resultadoQuery)
+        if resultadoQuery == 0:
+            messagebox.showerror(
+                "Información", "Ningún registro encontrado con el identificador informado.")
+        else:
+            conexion_bbdd.commit()
+            messagebox.showinfo("Información", "Registro eliminado!")
+            cleanEntries()
 
+""" BLOQUE PRINCIPAL DEL PROGRAMA """
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-# Comprobamos si la bbdd local de aplicación existe y si no es así, la creamos.
-try:
-    file=open('cred_crud.db','r')
-    file.close()
-    print("La bbdd ya existía. No es necesario crearla.")
-except:
-    conexion_bbdd = sqlite3.connect("cred_crud.db")
-    #cursor_bbdd = conexion_bbdd.cursor()
-    #cursor_bbdd.close()
-    conexion_bbdd.close()
-    print("La bbdd no existía y se ha creado.")
 
 # Creamos la ventana principal, con el menú.
 root = Tk()
@@ -76,7 +125,7 @@ root.config(menu=barraMenu)
 # Creamos opción Aplicación de manú principal y sus opciones
 opcion1Menu = Menu(barraMenu, tearoff=False)
 barraMenu.add_cascade(label="Aplicación", menu=opcion1Menu)
-opcion1Menu.add_cascade(label="Eliminar memoria local")
+opcion1Menu.add_cascade(label="Eliminar memoria local", command=eliminarAlacenamientoLocal)
 opcion1Menu.add_separator()  # Separador entre elemenos de menú
 opcion1Menu.add_command(label="Salir", command=salirAplicacion)
 
@@ -159,6 +208,13 @@ botonDelete.grid(row = 0, column = 4, pady = 15, padx = 10)
 
 labelVersion = Label(frameButtons, bg="lightgrey", text=f"Version: {version}")
 labelVersion.grid(row = 1, column = 4, pady = 5, padx = 5)
+
+# Tras inicializar la interfaz, comprobamos si la bbdd local de aplicación existe y si no es así, la creamos.
+crearAlmacenamientoLocal(False)
+
+conexion_bbdd = sqlite3.connect("cred_crud.db")
+cursor_bbdd = conexion_bbdd.cursor()
+
 
 
 root.mainloop()
