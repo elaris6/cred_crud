@@ -1,17 +1,20 @@
-from sqlite3.dbapi2 import version
+from sqlite3.dbapi2 import IntegrityError, version
 from tkinter import *
 from tkinter import messagebox
 import sqlite3
 import os
+import random
 
 version="0.0"
 
+# Función que se encarga de crear la BBDD local al arrancar la aplicación si esta no existe.
+# También usada junto con el parámetro resteo, para regenerar la BBDD a petición del usuario.
 def crearAlmacenamientoLocal(reseteo):
     try:
-        file = open('cred_crud.db', 'r')
+        file = open('cred_crud.sqlite', 'r')
         file.close()
     except:
-        conexion_bbdd = sqlite3.connect("cred_crud.db")
+        conexion_bbdd = sqlite3.connect("cred_crud.sqlite")
         cursor_bbdd = conexion_bbdd.cursor()
         cursor_bbdd.execute('''--sql
         CREATE TABLE CREDENCIALES(
@@ -29,6 +32,25 @@ def crearAlmacenamientoLocal(reseteo):
         else:
             messagebox.showinfo("Información", "El fichero de almacenamiento local no se ha hallado.\nSe ha inicializado un nuevo fichero de almacenamiento.")
 
+def poblarBBDD():
+    insert_error = 10
+    for i in range(10):
+        aleatNum = random.randint(0, 100)
+        try:
+            cursor_bbdd.execute('''--sql
+                    INSERT INTO CREDENCIALES VALUES (NULL,?,?,?,?)
+                    --endsql''', (f"Entorno{aleatNum}",
+                                f"Usuario{aleatNum}",
+                                f"Contraseña{aleatNum}",
+                                f"Esto es un registro de prueba {aleatNum}"))
+        except:
+            insert_error-=1
+
+    if insert_error < 10:
+            messagebox.showerror("Información", f"Ha ocurrido un error interno.\n\nNo se han creado todos los registros de prueba.\n\nRegistros de prueba creados {insert_error}.")
+    else:
+        messagebox.showinfo("Registros de prueba", "Creación de registros de prueba realizada con éxito.")
+            
 
 # Función para mostrar información sobre la aplicación en Acerca de...
 def informacion():
@@ -48,7 +70,7 @@ def eliminarAlacenamientoLocal():
     if valor == True:
         valor = messagebox.askyesno("Eliminar almacenamiento", "Seguro de verdad?\nNo hay marcha atrás, eh?")
         if valor == True:
-            os.remove("cred_crud.db")
+            os.remove("cred_crud.sqlite")
             crearAlmacenamientoLocal(True)
 
 # Función para borrar los campos de entrada
@@ -73,12 +95,16 @@ def operCreate():
         messagebox.showerror("Información", "Uno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
         pass
     else:
-        cursor_bbdd.execute('''--sql
-            INSERT INTO CREDENCIALES VALUES (NULL,?,?,?,?)
-            --endsql''',(entryDescripcion.get(), entryUsuario.get(), entryPassword.get(),textComentarios.get("1.0", END)))
-        conexion_bbdd.commit()
-        messagebox.showinfo("Información","Nuevo registro insertado!")
-        cleanEntries()
+        try:
+            cursor_bbdd.execute('''--sql
+                INSERT INTO CREDENCIALES VALUES (NULL,?,?,?,?)
+                --endsql''',(entryDescripcion.get(), entryUsuario.get(), entryPassword.get(),textComentarios.get("1.0", END)))
+            messagebox.showinfo("Información","Nuevo registro insertado!")
+            cleanEntries()
+        except IntegrityError:
+            messagebox.showerror("Registro duplicado", "Ya existe un registro con la misma descripción.\n\nPor favor, introduce una descrpción única.")
+
+        
 
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
@@ -91,21 +117,23 @@ def operUpdate():
 
 # Función para eliminar el registro que coincida con el identificador informado
 def operDelete():
-    if entryIdentificador.get() == "":
+    idEliminar = (entryIdentificador.get())
+    if idEliminar == "":
         messagebox.showerror(
             "Información", "El campo identificador está vacío.\n\nPor favor, informe el un valor.")
         pass
     else:
-        lista = (entryIdentificador.get())
-        cursor_bbdd.executemany('''--sql
-            DELETE FROM CREDENCIALES WHERE ID=?
-            --endsql''', lista)
-        resultadoQuery = cursor_bbdd.rowcount # ESTO NO FUNCIONA. DEVUELVE -1 SIEMPRE
-        print(resultadoQuery)
-        if resultadoQuery == 0:
+        cursor_bbdd.execute('''--sql
+                            SELECT ID FROM CREDENCIALES WHERE ID = ?
+                            --endsql''',(idEliminar,))
+        resultadoQuery = cursor_bbdd.fetchall()
+        if len(resultadoQuery) == 0:
             messagebox.showerror(
                 "Información", "Ningún registro encontrado con el identificador informado.")
         else:
+            cursor_bbdd.execute('''--sql
+                DELETE FROM CREDENCIALES WHERE ID=?
+                --endsql''', (idEliminar,))
             conexion_bbdd.commit()
             messagebox.showinfo("Información", "Registro eliminado!")
             cleanEntries()
@@ -125,6 +153,7 @@ root.config(menu=barraMenu)
 # Creamos opción Aplicación de manú principal y sus opciones
 opcion1Menu = Menu(barraMenu, tearoff=False)
 barraMenu.add_cascade(label="Aplicación", menu=opcion1Menu)
+opcion1Menu.add_cascade(label="Crear registros de prueba", command=poblarBBDD)
 opcion1Menu.add_cascade(label="Eliminar memoria local", command=eliminarAlacenamientoLocal)
 opcion1Menu.add_separator()  # Separador entre elemenos de menú
 opcion1Menu.add_command(label="Salir", command=salirAplicacion)
@@ -212,7 +241,7 @@ labelVersion.grid(row = 1, column = 4, pady = 5, padx = 5)
 # Tras inicializar la interfaz, comprobamos si la bbdd local de aplicación existe y si no es así, la creamos.
 crearAlmacenamientoLocal(False)
 
-conexion_bbdd = sqlite3.connect("cred_crud.db")
+conexion_bbdd = sqlite3.connect("cred_crud.sqlite")
 cursor_bbdd = conexion_bbdd.cursor()
 
 
