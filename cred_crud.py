@@ -81,20 +81,20 @@ def cleanEntries():
     descripcion.set("")
     usuario.set("")
     password.set("")
-    textComentarios.delete("1.0",END)
+    textComentarios.delete(1.0,END)
 
 # Función para generar una nueva ventana con los resultados de consulta
 # si los resultados son más de uno
 def ventanaTablaResultados():
     ventana_resultados = Tk()
     ventana_resultados.title("Resultados de búsqueda")
-
+    # Incluir funcionalidad :)
     ventana_resultados.mainloop()
 
 # Función para tomar los campos de entrada e insertarlos como un nuevo registro almacenado
 def operCreate():
     if entryDescripcion.get()=="" or entryUsuario.get() =="" or entryPassword.get() =="":
-        messagebox.showerror("Información", "Uno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
+        messagebox.showerror("Información", "Alguno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
         pass
     else:
         try:
@@ -109,13 +109,34 @@ def operCreate():
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
 def operRead():
-    pass
+    idBuscar = (entryIdentificador.get())
+    cleanEntries()
+    if idBuscar == "":
+        messagebox.showerror(
+            "Información", "El campo identificador está vacío.\n\nPor favor, informe el un valor.")
+        pass
+    else:
+        cursor_bbdd.execute('''--sql
+                            SELECT * FROM CREDENCIALES WHERE ID = ?
+                            --endsql''', (idBuscar,))
+        resultadoQuery = cursor_bbdd.fetchall()
+        if len(resultadoQuery) == 0:
+            identificador.set(idBuscar)
+            messagebox.showerror(
+                "Información", "Ningún registro encontrado con el identificador informado.")
+        else:
+            identificador.set(idBuscar)
+            descripcion.set(resultadoQuery[0][1])
+            usuario.set(resultadoQuery[0][2])
+            password.set(resultadoQuery[0][3])
+            textComentarios.delete(1.0, END)
+            textComentarios.insert(1.0,resultadoQuery[0][4])
 
 # Función para tomar los cmapos de entrada y actualizar el registro que coincida con el identificador informado
 def operUpdate():
     if entryDescripcion.get() == "" or entryUsuario.get() == "" or entryPassword.get() == "":
         messagebox.showerror(
-            "Información", "Uno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
+            "Información", "Alguno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
         pass
     else:
         idModificar = (entryIdentificador.get())
