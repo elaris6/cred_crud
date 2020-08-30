@@ -32,6 +32,7 @@ def crearAlmacenamientoLocal(reseteo):
         else:
             messagebox.showinfo("Información", "El fichero de almacenamiento local no se ha hallado.\nSe ha inicializado un nuevo fichero de almacenamiento.")
 
+# Función para crear registros de prueba con identificadores aleatorios del 0 al 100
 def poblarBBDD():
     insert_error = 10
     for i in range(10):
@@ -65,6 +66,7 @@ def salirAplicacion():
         conexion_bbdd.close()
         root.destroy()
 
+# Función para eliniar el fichero de almacenamiento local y volver a generarlo de manera automática.
 def eliminarAlacenamientoLocal():
     valor = messagebox.askokcancel("Eliminar alacenamiento", "Estás seguro de que deseas eliminar el almacenamiento local?")
     if valor == True:
@@ -104,8 +106,6 @@ def operCreate():
         except IntegrityError:
             messagebox.showerror("Registro duplicado", "Ya existe un registro con la misma descripción.\n\nPor favor, introduce una descrpción única.")
 
-        
-
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
 def operRead():
@@ -113,7 +113,25 @@ def operRead():
 
 # Función para tomar los cmapos de entrada y actualizar el registro que coincida con el identificador informado
 def operUpdate():
-    pass
+    if entryDescripcion.get() == "" or entryUsuario.get() == "" or entryPassword.get() == "":
+        messagebox.showerror(
+            "Información", "Uno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
+        pass
+    else:
+        idModificar = (entryIdentificador.get())
+        cursor_bbdd.execute('''--sql
+                            SELECT ID FROM CREDENCIALES WHERE ID = ?
+                            --endsql''', (idModificar,))
+        resultadoQuery = cursor_bbdd.fetchall()
+        if len(resultadoQuery) == 0:
+            messagebox.showerror(
+                "Información", "Ningún registro encontrado con el identificador informado.")
+        else:
+            cursor_bbdd.execute('''--sql
+                UPDATE CREDENCIALES SET DESCRIPCION=?, USUARIO=?, PASSWORD=?,COMENTARIOS=? WHERE ID = ?
+                --endsql''', (entryDescripcion.get(), entryUsuario.get(), entryPassword.get(), textComentarios.get("1.0", END), idModificar,))
+            messagebox.showinfo("Información", "Registro modificado!")
+            cleanEntries()
 
 # Función para eliminar el registro que coincida con el identificador informado
 def operDelete():
