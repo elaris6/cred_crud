@@ -85,11 +85,23 @@ def cleanEntries():
 
 # Función para generar una nueva ventana con los resultados de consulta
 # si los resultados son más de uno
-def ventanaTablaResultados():
-    ventana_resultados = Tk()
-    ventana_resultados.title("Resultados de búsqueda")
-    # Incluir funcionalidad :)
-    ventana_resultados.mainloop()
+def ventanaTablaResultados(listaResultados):
+    # Definimos el número de filas y de columnas de la lista de resultados
+    totalFilas = len(listaResultados)
+    totalColumnas = len(listaResultados[0])
+
+    # Creamos nueva ventana para resultados múltiples
+    ventanaResultados = Tk()
+    ventanaResultados.title("Resultados de búsqueda")
+    
+    #Creamos tabla de campos Entry y poblamos con la lista de resultados
+    for i in range(totalFilas):
+        for j in range(totalColumnas):
+            e = Entry(ventanaResultados,width=15)
+            e.grid(row=i,column=j)
+            e.insert(END,listaResultados[i][j])
+
+    ventanaResultados.mainloop()
 
 # Función para tomar los campos de entrada e insertarlos como un nuevo registro almacenado
 def operCreate():
@@ -109,13 +121,14 @@ def operCreate():
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
 def operRead():
-    idBuscar = (entryIdentificador.get())
+    idBuscar = entryIdentificador.get()
+    descBuscar = entryDescripcion.get()
     cleanEntries()
-    if idBuscar == "":
+    if idBuscar == "" and descBuscar == "":
         messagebox.showerror(
-            "Información", "El campo identificador está vacío.\n\nPor favor, informe el un valor.")
+            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor.")
         pass
-    else:
+    elif idBuscar != "":
         cursor_bbdd.execute('''--sql
                             SELECT * FROM CREDENCIALES WHERE ID = ?
                             --endsql''', (idBuscar,))
@@ -131,6 +144,25 @@ def operRead():
             password.set(resultadoQuery[0][3])
             textComentarios.delete(1.0, END)
             textComentarios.insert(1.0,resultadoQuery[0][4])
+    else:
+        descBuscarSQL = '%'+descBuscar+'%'
+        cursor_bbdd.execute('''--sql
+                    SELECT * FROM CREDENCIALES WHERE DESCRIPCION LIKE ?
+                    --endsql''', (descBuscarSQL,))
+        resultadoQuery = cursor_bbdd.fetchall()
+        if len(resultadoQuery) == 0:
+            descripcion.set(descBuscar)
+            messagebox.showerror(
+                "Información", "Ningún registro encontrado con la descripción informada.")
+        elif len(resultadoQuery) == 1:
+            identificador.set(resultadoQuery[0][0])
+            descripcion.set(resultadoQuery[0][1])
+            usuario.set(resultadoQuery[0][2])
+            password.set(resultadoQuery[0][3])
+            textComentarios.delete(1.0, END)
+            textComentarios.insert(1.0, resultadoQuery[0][4])
+        else:
+            ventanaTablaResultados(resultadoQuery)
 
 # Función para tomar los cmapos de entrada y actualizar el registro que coincida con el identificador informado
 def operUpdate():
