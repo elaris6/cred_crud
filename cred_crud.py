@@ -58,6 +58,11 @@ def informacion():
     messagebox.showinfo("Almacenamiento usuarios y contraseñas",
                         f"Versión: {version}\n\nCreada por IBJ como práctica para el curso de YouTube - Python, del canal 'Píldoras Informáticas'")
 
+# Función para mostrar información sobre la manera de realizar las búsquedas
+def informacionBusqueda():
+    messagebox.showinfo("Uso de la búsqueda",
+                        "Búsqueda por Identificador: Si conoces el identificador que deseas buscar, introdúcelo en el campo 'Identificador'\n\nBúsqueda por descripción: Si no conoces el identificador a buscar o deseas buscar todos los registros coincidentes con un patrón, introduce el patrón en el campo 'Descripción'")
+
 # Función para salir de la aplicación con ventana emergente.
 def salirAplicacion():
     valor = messagebox.askokcancel("Salir de la aplicación", "Quieres salir?")
@@ -87,7 +92,7 @@ def cleanEntries():
 # si los resultados son más de uno
 def ventanaTablaResultados(listaResultados):
     # Definimos el número de filas y de columnas de la lista de resultados
-    totalFilas = len(listaResultados)
+    totalFilas = len(listaResultados)+1
     totalColumnas = len(listaResultados[0])
 
     # Creamos nueva ventana para resultados múltiples
@@ -95,11 +100,18 @@ def ventanaTablaResultados(listaResultados):
     ventanaResultados.title("Resultados de búsqueda")
     
     #Creamos tabla de campos Entry y poblamos con la lista de resultados
+    encabezados = ['IDENTIFICADOR','DESCRIPCION','USUARIO','CONTRASEÑA','COMENTARIOS']
     for i in range(totalFilas):
         for j in range(totalColumnas):
-            e = Entry(ventanaResultados,width=15)
+            e = Entry(ventanaResultados,width=15,justify="center")
+            if j == totalColumnas-1:
+                e.config(width=40)
             e.grid(row=i,column=j)
-            e.insert(END,listaResultados[i][j])
+            if i == 0:
+                e.insert(END,encabezados[j])
+                e.config(bg="black",fg="white")
+            else:
+                e.insert(END,listaResultados[i-1][j])
 
     ventanaResultados.mainloop()
 
@@ -126,7 +138,7 @@ def operRead():
     cleanEntries()
     if idBuscar == "" and descBuscar == "":
         messagebox.showerror(
-            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor.")
+            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor en 'Identificador' o 'Descripción'.")
         pass
     elif idBuscar != "":
         cursor_bbdd.execute('''--sql
@@ -147,7 +159,7 @@ def operRead():
     else:
         descBuscarSQL = '%'+descBuscar+'%'
         cursor_bbdd.execute('''--sql
-                    SELECT * FROM CREDENCIALES WHERE DESCRIPCION LIKE ?
+                    SELECT * FROM CREDENCIALES WHERE DESCRIPCION LIKE ? ORDER BY DESCRIPCION ASC
                     --endsql''', (descBuscarSQL,))
         resultadoQuery = cursor_bbdd.fetchall()
         if len(resultadoQuery) == 0:
@@ -191,7 +203,7 @@ def operDelete():
     idEliminar = (entryIdentificador.get())
     if idEliminar == "":
         messagebox.showerror(
-            "Información", "El campo identificador está vacío.\n\nPor favor, informe el un valor.")
+            "Información", "El campo identificador está vacío.\n\nPor favor, informe un valor válido.")
         pass
     else:
         cursor_bbdd.execute('''--sql
@@ -242,7 +254,12 @@ opcion2Menu.add_cascade(label="Limpiar", command=cleanEntries)
 # Creamos opción Ayuda del menú principal y sus opciones
 opcion3Menu = Menu(barraMenu, tearoff=False)
 barraMenu.add_cascade(label="Ayuda", menu=opcion3Menu)
-opcion3Menu.add_command(label="Acerca de...",command=informacion)
+opcion3Menu.add_command(label="Uso de búsqueda",command=informacionBusqueda)
+opcion3Menu.add_command(label="Acerca de...", command=informacion)
+
+# Creamos frame separador entre la barra de menús y el cuerpo con los campos
+frameSeparador1 = Frame(root, height="10")
+frameSeparador1.pack()
 
 # Creamos frame en el que colocar todas los campos de entrada e información
 frameEntry = Frame(root, width="500", height="500")
@@ -270,7 +287,7 @@ entryUsuario.grid(row=2, column=1, columnspan=4, pady=5, padx=5)
 entryUsuario.config(width=40)
 
 password = StringVar()
-labelPassword = Label(frameEntry, text="Password:")
+labelPassword = Label(frameEntry, text="Contraseña:")
 labelPassword.grid(row=3, column=0, sticky="e", pady=5, padx=5)
 entryPassword = Entry(frameEntry, textvariable=password)
 entryPassword.grid(row=3, column=1, columnspan=4, pady=5, padx=5)
@@ -279,11 +296,15 @@ entryPassword.config(width=40)
 
 labelComentarios = Label(frameEntry, text="Comentarios:")
 labelComentarios.grid(row=4, column=0, sticky="e", pady=5, padx=5)
-textComentarios = Text(frameEntry, width="20", height="5")
+textComentarios = Text(frameEntry, width=20, height=5)
 textComentarios.grid(row=4, column=1, columnspan=3, pady="5", padx="5")
 scrollComentarios = Scrollbar(frameEntry, command=textComentarios.yview)
 scrollComentarios.grid(row=4, column=4, sticky="nsew")
 textComentarios.config(width=27, yscrollcommand=scrollComentarios.set)
+
+# Creamos frame separador entre el cuerpo con los campos la barra inferior de botones
+frameSeparador2 = Frame(root, height="20")
+frameSeparador2.pack()
 
 
 # Creamos frame en el que colocar los botones CRUD
