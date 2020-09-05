@@ -87,6 +87,22 @@ def cleanEntries():
     usuario.set("")
     password.set("")
     textComentarios.delete(1.0,END)
+    hidePassword()
+
+# Función para mostrar la password del Entry, quitando los asteriscos
+def showPassword():
+    global passVisible
+    if passVisible == 0:
+        entryPassword.config(show="")
+        passVisible = 1
+    else:
+        entryPassword.config(show="*")
+        passVisible = 0
+
+def hidePassword():
+    global passVisible
+    entryPassword.config(show="*")
+    passVisible = 0
 
 # Función para generar una nueva ventana con los resultados de consulta
 # si los resultados son más de uno
@@ -98,7 +114,7 @@ def ventanaTablaResultados(listaResultados):
     # Creamos nueva ventana para resultados múltiples
     ventanaResultados = Tk()
     ventanaResultados.title("Resultados de búsqueda")
-    
+
     #Creamos tabla de campos Entry y poblamos con la lista de resultados
     encabezados = ['IDENTIFICADOR','DESCRIPCION','USUARIO','CONTRASEÑA','COMENTARIOS']
     for i in range(totalFilas):
@@ -106,6 +122,8 @@ def ventanaTablaResultados(listaResultados):
             e = Entry(ventanaResultados,width=15,justify="center")
             if j == totalColumnas-1:
                 e.config(width=40)
+            elif j == totalColumnas-2 and i != 0:
+                e.config(show='*')
             e.grid(row=i,column=j)
             if i == 0:
                 e.insert(END,encabezados[j])
@@ -224,6 +242,7 @@ def operDelete():
 """ BLOQUE PRINCIPAL DEL PROGRAMA """
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+passVisible = 0
 
 # Creamos la ventana principal, con el menú.
 root = Tk()
@@ -290,9 +309,12 @@ password = StringVar()
 labelPassword = Label(frameEntry, text="Contraseña:")
 labelPassword.grid(row=3, column=0, sticky="e", pady=5, padx=5)
 entryPassword = Entry(frameEntry, textvariable=password)
-entryPassword.grid(row=3, column=1, columnspan=4, pady=5, padx=5)
+entryPassword.grid(row=3, column=1, columnspan=3, pady=5, padx=5)
 entryPassword.config(show="*")
-entryPassword.config(width=40)
+entryPassword.config(width=36)
+botonShowPassword = Button(frameEntry, text="Ver",command=showPassword)
+botonShowPassword.grid(row=3,column=4)
+
 
 labelComentarios = Label(frameEntry, text="Comentarios:")
 labelComentarios.grid(row=4, column=0, sticky="e", pady=5, padx=5)
