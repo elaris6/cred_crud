@@ -1,5 +1,10 @@
 temp
+dist
+build
+__pycache__
 cred_crud.sqlite
 tempCodeRunnerFile.py
 carga_datos.py
+setup.py
+cred_crud.spec
 
