@@ -69,6 +69,7 @@ def salirAplicacion():
     if valor == True:
         cursor_bbdd.close()
         conexion_bbdd.close()
+        checkVentanaResultados()
         root.destroy()
 
 # Función para eliniar el fichero de almacenamiento local y volver a generarlo de manera automática.
@@ -82,12 +83,14 @@ def eliminarAlacenamientoLocal():
 
 # Función para borrar los campos de entrada
 def cleanEntries():
+    global passVisible
     identificador.set("")
     descripcion.set("")
     usuario.set("")
     password.set("")
     textComentarios.delete(1.0,END)
-    hidePassword()
+    passVisible = 1
+    showPassword()
 
 # Función para mostrar la password del Entry, quitando los asteriscos
 def showPassword():
@@ -99,24 +102,28 @@ def showPassword():
         entryPassword.config(show="*")
         passVisible = 0
 
-def hidePassword():
-    global passVisible
-    entryPassword.config(show="*")
-    passVisible = 0
-
 # Función para generar una nueva ventana con los resultados de consulta
 # si los resultados son más de uno
 def ventanaTablaResultados(listaResultados):
+    # Importamos la ventana de multiresultados
+    global ventanaResultados
+
     # Definimos el número de filas y de columnas de la lista de resultados
     totalFilas = len(listaResultados)+1
     totalColumnas = len(listaResultados[0])
+    encabezados = ['IDENTIFICADOR', 'DESCRIPCION','USUARIO', 'CONTRASEÑA', 'COMENTARIOS']
 
-    # Creamos nueva ventana para resultados múltiples
-    ventanaResultados = Tk()
-    ventanaResultados.title("Resultados de búsqueda")
+    # Creamos nueva ventana para resultados múltiples si no existe, y si existe la restruimos y regeneramos
+    try:
+        if ventanaResultados.state() == "normal":
+            ventanaResultados.destroy()
+            ventanaResultados = Tk()
+    except:
+        ventanaResultados = Tk()
+    finally:
+        ventanaResultados.title(f"Resultados de búsqueda: {len(listaResultados)}")
 
     #Creamos tabla de campos Entry y poblamos con la lista de resultados
-    encabezados = ['IDENTIFICADOR','DESCRIPCION','USUARIO','CONTRASEÑA','COMENTARIOS']
     for i in range(totalFilas):
         for j in range(totalColumnas):
             e = Entry(ventanaResultados,width=15,justify="center")
@@ -133,8 +140,19 @@ def ventanaTablaResultados(listaResultados):
 
     ventanaResultados.mainloop()
 
+# Función para comprobar si existe alguna ventana abierta de resultados múltiples y en tal caso, la cierra.
+def checkVentanaResultados():
+    try:
+        if ventanaResultados.state() == "normal":
+            ventanaResultados.destroy()
+    except:
+        return 0
+    
 # Función para tomar los campos de entrada e insertarlos como un nuevo registro almacenado
 def operCreate():
+    # Comprobamos si hay alguna ventana de resultados abierta y la cerramos
+    checkVentanaResultados()
+
     if entryDescripcion.get()=="" or entryUsuario.get() =="" or entryPassword.get() =="":
         messagebox.showerror("Información", "Alguno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
         pass
@@ -151,22 +169,25 @@ def operCreate():
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
 def operRead():
+    # Comprobamos si hay alguna ventana de resultados abierta y la cerramos
+    checkVentanaResultados()
+
     idBuscar = entryIdentificador.get()
     descBuscar = entryDescripcion.get()
     cleanEntries()
-    if idBuscar == "" and descBuscar == "":
-        messagebox.showerror(
-            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor en 'Identificador' o 'Descripción'.")
-        pass
-    elif idBuscar != "":
+# Comentado para permitir la búsqueda completa sin filtros    
+#    if idBuscar == "" and descBuscar == "":
+#        messagebox.showerror(
+#            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor en 'Identificador' o 'Descripción'.")
+#        pass
+    if idBuscar != "":
         cursor_bbdd.execute('''--sql
                             SELECT * FROM CREDENCIALES WHERE ID = ?
                             --endsql''', (idBuscar,))
         resultadoQuery = cursor_bbdd.fetchall()
         if len(resultadoQuery) == 0:
             identificador.set(idBuscar)
-            messagebox.showerror(
-                "Información", "Ningún registro encontrado con el identificador informado.")
+            messagebox.showerror("Información", "Ningún registro encontrado con el identificador informado.")
         else:
             identificador.set(idBuscar)
             descripcion.set(resultadoQuery[0][1])
@@ -182,8 +203,7 @@ def operRead():
         resultadoQuery = cursor_bbdd.fetchall()
         if len(resultadoQuery) == 0:
             descripcion.set(descBuscar)
-            messagebox.showerror(
-                "Información", "Ningún registro encontrado con la descripción informada.")
+            messagebox.showerror("Información", "Ningún registro encontrado con la descripción informada.")
         elif len(resultadoQuery) == 1:
             identificador.set(resultadoQuery[0][0])
             descripcion.set(resultadoQuery[0][1])
@@ -196,6 +216,9 @@ def operRead():
 
 # Función para tomar los cmapos de entrada y actualizar el registro que coincida con el identificador informado
 def operUpdate():
+    # Comprobamos si hay alguna ventana de resultados abierta y la cerramos
+    checkVentanaResultados()
+
     if entryDescripcion.get() == "" or entryUsuario.get() == "" or entryPassword.get() == "":
         messagebox.showerror(
             "Información", "Alguno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
@@ -218,6 +241,9 @@ def operUpdate():
 
 # Función para eliminar el registro que coincida con el identificador informado
 def operDelete():
+    # Comprobamos si hay alguna ventana de resultados abierta y la cerramos
+    checkVentanaResultados()
+
     idEliminar = (entryIdentificador.get())
     if idEliminar == "":
         messagebox.showerror(
@@ -244,7 +270,7 @@ def operDelete():
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 passVisible = 0
 
-# Creamos la ventana principal, con el menú.
+# Creamos la ventana principal, y título
 root = Tk()
 root.title("Almacenamiento usuarios y contraseñas")
 
@@ -358,6 +384,5 @@ crearAlmacenamientoLocal(False)
 conexion_bbdd = sqlite3.connect("cred_crud.sqlite")
 cursor_bbdd = conexion_bbdd.cursor()
 
-
-
+# Bucle ventana principal
 root.mainloop()
