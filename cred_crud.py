@@ -6,7 +6,7 @@ import os
 import random
 from encryption import encrypt, decrypt
 
-version="0.0"
+version="1.0"
 
 # Función que se encarga de crear la BBDD local al arrancar la aplicación si esta no existe.
 # También usada junto con el parámetro resteo, para regenerar la BBDD a petición del usuario.
@@ -174,6 +174,8 @@ def operCreate():
 # Función para tomar el campo de entrada identificador y buscar un registro concreto
 # o tomar el campo descripción y buscar todos los que coincidan con el patrón informado
 def operRead():
+    global passLocal
+
     # Comprobamos si hay alguna ventana de resultados abierta y la cerramos
     checkVentanaResultados()
 
@@ -181,10 +183,6 @@ def operRead():
     descBuscar = entryDescripcion.get()
     cleanEntries()
 # Comentado para permitir la búsqueda completa sin filtros    
-    global passLocal
-    idBuscar = entryIdentificador.get()
-    descBuscar = entryDescripcion.get()
-    cleanEntries()
 #    if idBuscar == "" and descBuscar == "":
 #        messagebox.showerror(
 #            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor en 'Identificador' o 'Descripción'.")

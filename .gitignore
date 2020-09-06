@@ -1,7 +1,9 @@
 temp
 dist
 build
+__pycache__
 cred_crud.sqlite
+cred_crud.strg
 tempCodeRunnerFile.py
 carga_datos.py
 setup.py
