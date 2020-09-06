@@ -4,6 +4,7 @@ from tkinter import messagebox
 import sqlite3
 import os
 import random
+from encryption import encrypt, decrypt
 
 version="0.0"
 
@@ -11,17 +12,17 @@ version="0.0"
 # También usada junto con el parámetro resteo, para regenerar la BBDD a petición del usuario.
 def crearAlmacenamientoLocal(reseteo):
     try:
-        file = open('cred_crud.sqlite', 'r')
+        file = open('cred_crud.strg', 'r')
         file.close()
     except:
-        conexion_bbdd = sqlite3.connect("cred_crud.sqlite")
+        conexion_bbdd = sqlite3.connect("cred_crud.strg")
         cursor_bbdd = conexion_bbdd.cursor()
         cursor_bbdd.execute('''--sql
         CREATE TABLE CREDENCIALES(
         ID INTEGER PRIMARY KEY AUTOINCREMENT,
         DESCRIPCION VARCHAR(60) UNIQUE,
         USUARIO VARCHAR(30),
-        PASSWORD VARCHAR (30),
+        PASSWORD VARCHAR (200),
         COMENTARIOS VARCHAR(200))  
         --endsql''')
         cursor_bbdd.close()
@@ -38,11 +39,12 @@ def poblarBBDD():
     for i in range(10):
         aleatNum = random.randint(0, 100)
         try:
+            encryptedPassword = encrypt(bytes(f"Contraseña{aleatNum}", encoding='utf-8'), passLocal)
             cursor_bbdd.execute('''--sql
                     INSERT INTO CREDENCIALES VALUES (NULL,?,?,?,?)
                     --endsql''', (f"Entorno{aleatNum}",
                                 f"Usuario{aleatNum}",
-                                f"Contraseña{aleatNum}",
+                                encryptedPassword,
                                 f"Esto es un registro de prueba {aleatNum}"))
         except:
             insert_error-=1
@@ -78,7 +80,7 @@ def eliminarAlacenamientoLocal():
     if valor == True:
         valor = messagebox.askyesno("Eliminar almacenamiento", "Seguro de verdad?\nNo hay marcha atrás, eh?")
         if valor == True:
-            os.remove("cred_crud.sqlite")
+            os.remove("cred_crud.strg")
             crearAlmacenamientoLocal(True)
 
 # Función para borrar los campos de entrada
@@ -153,14 +155,17 @@ def operCreate():
     # Comprobamos si hay alguna ventana de resultados abierta y la cerramos
     checkVentanaResultados()
 
+    global passLocal
     if entryDescripcion.get()=="" or entryUsuario.get() =="" or entryPassword.get() =="":
         messagebox.showerror("Información", "Alguno de los campos obligatorios está vacío.\n\nPor favor, rellene campos Descripción, Usuario y Contraseña")
         pass
     else:
         try:
+            encryptedPassword = encrypt(
+                bytes(entryPassword.get(), encoding='utf-8'), passLocal)
             cursor_bbdd.execute('''--sql
                 INSERT INTO CREDENCIALES VALUES (NULL,?,?,?,?)
-                --endsql''',(entryDescripcion.get(), entryUsuario.get(), entryPassword.get(),textComentarios.get("1.0", END)))
+                --endsql''',(entryDescripcion.get(), entryUsuario.get(), encryptedPassword, textComentarios.get("1.0", END)))
             messagebox.showinfo("Información","Nuevo registro insertado!")
             cleanEntries()
         except IntegrityError:
@@ -176,6 +181,10 @@ def operRead():
     descBuscar = entryDescripcion.get()
     cleanEntries()
 # Comentado para permitir la búsqueda completa sin filtros    
+    global passLocal
+    idBuscar = entryIdentificador.get()
+    descBuscar = entryDescripcion.get()
+    cleanEntries()
 #    if idBuscar == "" and descBuscar == "":
 #        messagebox.showerror(
 #            "Información", "Los campos de búsqueda están vacíos.\n\nPor favor, informe algún valor en 'Identificador' o 'Descripción'.")
@@ -192,7 +201,7 @@ def operRead():
             identificador.set(idBuscar)
             descripcion.set(resultadoQuery[0][1])
             usuario.set(resultadoQuery[0][2])
-            password.set(resultadoQuery[0][3])
+            password.set(str(decrypt(resultadoQuery[0][3],passLocal),encoding="utf8"))
             textComentarios.delete(1.0, END)
             textComentarios.insert(1.0,resultadoQuery[0][4])
     else:
@@ -269,6 +278,7 @@ def operDelete():
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 passVisible = 0
+passLocal = bytes("Oe06UKJ$7E*wvGf9_qA&",encoding="utf8")
 
 # Creamos la ventana principal, y título
 root = Tk()
@@ -381,7 +391,7 @@ labelVersion.grid(row = 1, column = 4, pady = 5, padx = 5)
 # Tras inicializar la interfaz, comprobamos si la bbdd local de aplicación existe y si no es así, la creamos.
 crearAlmacenamientoLocal(False)
 
-conexion_bbdd = sqlite3.connect("cred_crud.sqlite")
+conexion_bbdd = sqlite3.connect("cred_crud.strg")
 cursor_bbdd = conexion_bbdd.cursor()
 
 # Bucle ventana principal
