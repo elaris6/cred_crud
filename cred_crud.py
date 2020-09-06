@@ -6,7 +6,7 @@ import os
 import random
 from encryption import encrypt, decrypt
 
-version="1.0"
+version="1.00"
 
 # Función que se encarga de crear la BBDD local al arrancar la aplicación si esta no existe.
 # También usada junto con el parámetro resteo, para regenerar la BBDD a petición del usuario.
@@ -265,12 +265,16 @@ def operDelete():
             messagebox.showerror(
                 "Información", "Ningún registro encontrado con el identificador informado.")
         else:
-            cursor_bbdd.execute('''--sql
-                DELETE FROM CREDENCIALES WHERE ID=?
-                --endsql''', (idEliminar,))
-            conexion_bbdd.commit()
-            messagebox.showinfo("Información", "Registro eliminado!")
-            cleanEntries()
+            confirmacion = messagebox.askokcancel("Información",f"Estás seguro que deseas eliminar el registro con ID {idEliminar} ?")
+            if confirmacion == True:
+                cursor_bbdd.execute('''--sql
+                    DELETE FROM CREDENCIALES WHERE ID=?
+                    --endsql''', (idEliminar,))
+                conexion_bbdd.commit()
+                messagebox.showinfo("Información", "Registro eliminado!")
+                cleanEntries()
+            else:
+                pass
 
 """ BLOQUE PRINCIPAL DEL PROGRAMA """
 
